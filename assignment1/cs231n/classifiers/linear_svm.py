@@ -26,20 +26,24 @@ def svm_loss_naive(W, X, y, reg):
   num_classes = W.shape[1]
   num_train = X.shape[0]
   loss = 0.0
-  for i in xrange(num_train):
+  for i in range(num_train):
     scores = X[i].dot(W)
     correct_class_score = scores[y[i]]
+    diff_count = 0
     for j in xrange(num_classes):
       if j == y[i]:
         continue
       margin = scores[j] - correct_class_score + 1 # note delta = 1
       if margin > 0:
         loss += margin
-
+        dW[:,j] += X[i]
+        diff_count += 1
+    dW[:,y[i]] += -diff_count*X[i]
   # Right now the loss is a sum over all training examples, but we want it
   # to be an average instead so we divide by num_train.
   loss /= num_train
-
+  dW /= num_train
+  dW += reg * W
   # Add regularization to the loss.
   loss += reg * np.sum(W * W)
 
@@ -64,13 +68,19 @@ def svm_loss_vectorized(W, X, y, reg):
   """
   loss = 0.0
   dW = np.zeros(W.shape) # initialize the gradient as zero
-
+  num_train = X.shape[0]
   #############################################################################
   # TODO:                                                                     #
   # Implement a vectorized version of the structured SVM loss, storing the    #
   # result in loss.                                                           #
   #############################################################################
-  pass
+  scores = X.dot(W)
+  correct_class_scores = scores[range(y.size), y].reshape(y.size,1)
+  margins = scores - correct_class_scores + 1
+  margins[np.where(margins < 0)] = 0
+  margins[range(y.size), y] = 0
+  loss = margins.sum() / num_train
+  loss += reg * np.sum(W * W)
   #############################################################################
   #                             END OF YOUR CODE                              #
   #############################################################################
@@ -85,7 +95,14 @@ def svm_loss_vectorized(W, X, y, reg):
   # to reuse some of the intermediate values that you used to compute the     #
   # loss.                                                                     #
   #############################################################################
-  pass
+  samp_ind, clas_ind = np.where(margins > 0)
+  _, diff_counts = np.unique(samp_ind,return_counts=True)
+  for i in range(len(samp_ind)):
+      dW[:,clas_ind[i]] += X[samp_ind[i]]
+      dW[:, y[samp_ind[i]]] -= X[samp_ind[i]]
+      
+  dW /=  num_train
+  dW += reg * W
   #############################################################################
   #                             END OF YOUR CODE                              #
   #############################################################################
