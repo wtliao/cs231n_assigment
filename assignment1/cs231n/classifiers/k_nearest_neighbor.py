@@ -1,6 +1,5 @@
 import numpy as np
 from past.builtins import xrange
-import pdb
 
 
 class KNearestNeighbor(object):
